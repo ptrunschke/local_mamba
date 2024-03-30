@@ -1,2 +1,3 @@
-# local_mamba
+# Local Mamba
+
 Install Mamba (conda) environments in any directory.
