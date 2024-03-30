@@ -1,0 +1,124 @@
+if ! [ "$1" = 'install' -o "$1" = 'update' -o "$1" = 'purge' -o "$1" = 'set_variables' ]; then
+    echo    'Usage: source setup [SUBCOMMAND]'
+    echo    'Set up a virtual environment for this research project.'
+    echo    'Subcommands:'
+    echo -e '  install \t\tInstall micromamba and create the environment.'
+    echo -e '  update \t\tUpdate micromamba environment.'
+    echo -e '  purge  \t\tUninstall everything and remove the environment.'
+    return
+fi
+
+case $- in
+    *i*) ;;
+      *) echo "'source setup' requires an interactive session."; return 1;;
+esac
+
+if [ -n "$ZSH_VERSION" ]; then
+    case $ZSH_EVAL_CONTEXT in *:file) __sourced=true;; esac
+elif [ -n "$KSH_VERSION" ]; then
+    [ "$(cd -- "$(dirname -- "$0")" && pwd -P)/$(basename -- "$0")" != "$(cd -- "$(dirname -- "${.sh.file}")" && pwd -P)/$(basename -- "${.sh.file}")" ] && __sourced=true
+elif [ -n "$BASH_VERSION" ]; then
+    (return 0 2>/dev/null) && __sourced=true
+else # All other shells: examine $0 for known shell binary filenames.
+    # Detects `sh` and `dash`; add additional shell filenames as needed.
+    case ${0##*/} in sh|-sh|dash|-dash) __sourced=true;; esac
+fi
+if [ -z "${__sourced}" ]; then
+    echo "This script has to be sourced.";
+    exit 1;
+fi
+
+if ! command -v realpath &>/dev/null; then
+    echo "Command 'realpath' could not be found.";
+    return 1;
+fi
+
+if ! command -v wget &>/dev/null; then
+    echo "Command 'wget' could not be found.";
+    return 1;
+fi
+
+if [ -n "$ZSH_VERSION" ]; then
+    __shell=zsh;
+    __base=$(realpath $(dirname ${0}));
+elif [ -n "$BASH_VERSION" ]; then
+    __shell=bash;
+    __base=$(realpath $(dirname ${BASH_SOURCE[0]}));
+else
+    echo "This script requires a 'bash' or 'zsh'.";
+    return 1;
+fi
+
+__env_name=$(grep 'name:' ${__base}/environment.yml | awk '{ print $2 }')
+if [ -z "${__env_name}" ]; then
+    echo "Error: Field 'name' in ${__base}/environment.yml could not be decoded."
+    return 1
+fi
+__mamba_root_prefix=${__base}/.micromamba/envs/${__env_name};
+
+
+__init_mamba () {
+    export MAMBA_EXE=${__base}/micromamba;
+    export MAMBA_ROOT_PREFIX=${__base}/.micromamba;
+    eval "$(${__base}/micromamba shell hook --shell ${__shell} --prefix ${__base}/.micromamba)"
+}
+
+
+if [ "$1" = 'set_variables' ]; then
+    return;
+fi
+
+
+__install_mamba () {
+    (
+        set -e
+        if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+           if [[ "$(uname -m)" == "x86_64" ]]; then
+               local __mamba_url='https://conda.anaconda.org/conda-forge/linux-64/micromamba-0.24.0-0.tar.bz2'
+               local __mamba_checksum='eb8edec14779b359b325aaf26ca1eb21'
+           elif [[ "$(uname -m)" == "aarch64" ]]; then
+               local __mamba_url='https://conda.anaconda.org/conda-forge/linux-aarch64/micromamba-0.27.0-2.tar.bz2'
+               local __mamba_checksum='baf6dba05900d7c4140653c982061b0a'
+           else
+               echo "This script requires 64 bit Intel or ARM architecture.";
+               return 1;
+           fi
+        elif [[ "$OSTYPE" == "darwin"* ]]; then
+           if [[ "$(uname -m)" == "arm64" ]]; then
+               local __mamba_url='https://conda.anaconda.org/conda-forge/osx-arm64/micromamba-0.27.0-0.tar.bz2'
+               local __mamba_checksum='b2e4b5e5507b4a9178fefd21f7b4c7a4'
+           elif [[ "$(uname -m)" == "x86_64" ]]; then
+               local __mamba_url='https://conda.anaconda.org/conda-forge/osx-64/micromamba-0.27.0-3.tar.bz2'
+               local __mamba_checksum='2da3ae27dd5a919a0b4d1587fa0d8060'
+           else
+               echo "This script requires 64 bit Apple silicon or Intel architecture.";
+               return 1;
+           fi
+        else
+           echo "This script requires a 'gnu-linux' or 'darwin' kernel.";
+           return 1;
+        fi
+        local __temp_dir=$(mktemp -d)
+        wget --progress=bar -qO ${__temp_dir}/micromamba.bz2 ${__mamba_url}
+        echo "${__mamba_checksum}  ${__temp_dir}/micromamba.bz2" | md5sum --check --status
+        tar -xvjf ${__temp_dir}/micromamba.bz2 -C ${__temp_dir}
+        mv ${__temp_dir}/bin/micromamba ${__base}/micromamba
+        rm -r ${__temp_dir}
+        # source ${__base}/.micromambarc
+        __init_mamba
+        micromamba create -y -f environment.yml
+    )
+}
+
+if [ "$1" = 'install' ]; then
+    __install_mamba
+elif [ "$1" = 'update' ]; then
+    rm -rf ${__mamba_root_prefix}
+    __init_mamba
+    micromamba create -y -f environment.yml
+elif [ "$1" = 'purge' ]; then
+    rm -rf ${__base}/micromamba ${__base}/.micromamba ${__base}/.micromambarc
+fi
+
+unset -f __install_mamba __install_crosshair __install_xerus
+source deactivate

@@ -1,0 +1,6 @@
+if command -v micromamba &>/dev/null; then
+    micromamba deactivate
+fi
+
+unset __sourced __shell __base __env_name __mamba_root_prefix
+unset -f __init_mamba

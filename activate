@@ -1,0 +1,14 @@
+source setup set_variables
+
+if [ "${#}" -eq "0" -o "${#}" -eq "1" -a "${1}" = "${__mamba_root_prefix}" ]; then
+    if [ -f ${__base}/micromamba ] && [ -d ${__base}/.micromamba ]; then
+        __init_mamba
+        micromamba activate $(grep 'name:' ${__base}/environment.yml | awk '{ print $2 }')
+        export CONDA_PREFIX="${__base}/.micromamba"
+        export CONDA_EXE="${__base}/micromamba"
+    else
+        echo "Could not find micromamba. Please run 'source setup install mamba' first."
+    fi
+else
+    return 1;
+fi
