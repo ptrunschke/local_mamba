@@ -6,9 +6,10 @@ Install Mamba (conda) environments in any directory.
 
 ## Installation
 
-1. Copy all files to the desired directory.
-2. Customise the `environment.yml` file.
-3. Change to the desired directory and run `source setup install`.
+1. Change to the desired directory.
+2. Execute `bash <path to local_mamba>/link_from_here.sh` to create symbolic links to all necessary files.
+3. Create an `environment.yml` file. (A template is given in `<path to local_mamba>/environment.yml`)
+4. Execute `source setup install`.
 
 The last step will download the [micromamba](https://mamba.readthedocs.io/en/latest/user_guide/micromamba.html) executable and create the environment.
 - Micromamba is downloaded to `./micromamba`.
