@@ -120,5 +120,5 @@ elif [ "$1" = 'purge' ]; then
     rm -rf ${__base}/micromamba ${__base}/.micromamba ${__base}/.micromambarc
 fi
 
-unset -f __install_mamba __install_crosshair __install_xerus
+unset -f __install_mamba
 source deactivate
