@@ -7,7 +7,7 @@ Install Mamba (conda) environments in any directory.
 ## Installation
 
 1. Change to the desired directory.
-2. Execute `bash <path to local_mamba>/link_from_here.sh` to create symbolic links to all necessary files.
+2. Execute `bash <path to local_mamba>/link_here.sh` to create links to all necessary files.
 3. Create an `environment.yml` file. (A template is given in `<path to local_mamba>/environment.yml`)
 4. Execute `source setup install`.
 
